@@ -87,7 +87,7 @@ button{font:inherit;cursor:pointer}
   <h1>出欠 & カレンダー</h1>
   <div class="tabs no-print">
     <button class="tab active" data-m="member" onclick="setMode('member')">メンバー用</button>
-    <button class="tab" data-m="admin" onclick="setMode('admin')">管理者(のあ)</button>
+    <button class="tab" id="adminTab" data-m="admin" style="display:none" onclick="setMode('admin')">管理者(のあ)</button>
   </div>
 </header>
 
@@ -121,7 +121,7 @@ button{font:inherit;cursor:pointer}
         <label>お名前</label>
         <input type="text" id="memName" list="memList" placeholder="例:れいあ" style="width:160px">
         <datalist id="memList"></datalist>
-        <span class="hint">来られない日をタップ → 下のテキストをコピーして のあ にLINEで送ってください。</span>
+        <span class="hint">来られない日をタップ →「送信」を押してください（自動で のあ に届きます）。</span>
       </div>
       <div id="memberCal" class="cal"></div>
       <div class="row" style="margin-top:14px">
@@ -141,6 +141,9 @@ button{font:inherit;cursor:pointer}
 
   <!-- ===================== 管理者用 ===================== -->
   <section id="viewAdmin" style="display:none">
+    <div class="no-print" style="text-align:right;margin-bottom:8px">
+      <button class="btn gray" onclick="lockAdmin()">🔒 管理者ページをロック（この端末で隠す）</button>
+    </div>
     <div class="card no-print">
       <b>① メンバーの回答を集める</b>
       <div class="row" style="margin-top:6px">
@@ -258,9 +261,9 @@ function renderShare(){
     <button class="btn ghost" onclick="navigator.clipboard&&navigator.clipboard.writeText('${S.room}');flash('shareStatus','コピーしました')">コピー</button>
     <button class="btn gray" onclick="roomLeave()">解除</button>`;}
   else{row.innerHTML=`<input type="text" id="joinCode" placeholder="共有コードを入力" style="width:220px">
-    <button class="btn" onclick="roomJoin()">参加</button>
-    <span style="color:#999">｜のあさんは→</span>
-    <button class="btn green" onclick="roomCreate()">新しく共有をオンにする</button>`;}
+    <button class="btn" onclick="roomJoin()">参加</button>`+
+    (window.__adminOK?`<span style="color:#999">｜のあさんは→</span>
+    <button class="btn green" onclick="roomCreate()">新しく共有をオンにする</button>`:'');}
 }
 
 function load(){try{return JSON.parse(localStorage.getItem('elihu'))}catch(e){return null}}
@@ -272,7 +275,22 @@ function weeksOf(y,m){const n=daysIn(y,m),f=wdOf(y,m,1);let w=[],cur=new Array(f
   while(d<=n){cur.push(d++);if(cur.length===7){w.push(cur);cur=[];}}
   if(cur.length){while(cur.length<7)cur.push(0);w.push(cur);}return w;}
 
-function setMode(m){mode=m;
+/* ===== 管理者ページの秘密URLロック ===== */
+const ADMIN_HASH='2cf06e176060eacd365c64411b49585474c0ffbf61275fa4f2cae4f01c8bdf93';
+async function sha256hex(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));
+  return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');}
+async function initAdminGate(){
+  let ok=localStorage.getItem('adminOK')==='1', viaLink=false;
+  const frag=(location.hash||'').replace(/^#/,'').trim();
+  if(frag){try{if(await sha256hex(frag)===ADMIN_HASH){ok=true;viaLink=true;localStorage.setItem('adminOK','1');
+    history.replaceState(null,'',location.pathname+location.search);}}catch(e){}}
+  window.__adminOK=ok;
+  const at=document.getElementById('adminTab');if(at)at.style.display=ok?'':'none';
+  if(viaLink)setMode('admin');
+}
+function lockAdmin(){localStorage.removeItem('adminOK');window.__adminOK=false;location.href=location.pathname;}
+
+function setMode(m){if(m==='admin'&&!window.__adminOK)m='member';mode=m;
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.m===m));
   document.getElementById('viewMember').style.display=m==='member'?'':'none';
   document.getElementById('viewAdmin').style.display=m==='admin'?'':'none';
@@ -324,7 +342,7 @@ function renderMemberOut(){
   document.getElementById('memOut').value=human+'\n'+tag;
 }
 function copyOut(){const t=document.getElementById('memOut');t.select();
-  navigator.clipboard?.writeText(t.value).then(()=>flash('copyMsg','コピーしました。LINEで送ってください'),()=>{document.execCommand('copy');flash('copyMsg','コピーしました');});}
+  navigator.clipboard?.writeText(t.value).then(()=>flash('copyMsg','コピーしました'),()=>{document.execCommand('copy');flash('copyMsg','コピーしました');});}
 
 // ---------- 管理者:回答パース ----------
 function parseResponses(){
@@ -370,20 +388,6 @@ function availOf(d){
 function absentNames(d){return Object.keys(S.absent).filter(n=>S.absent[n].includes(d));}
 function selfHere(d){return selfDays().includes(d);}
 
-// ---------- 管理者:自動おすすめ配置 ----------
-function autoSchedule(){
-  S.events={};
-  const wp=document.getElementById('autoWorship');
-  weeksOf(S.year,S.month).forEach(week=>{
-    const wk=week.filter(d=>d&&wdOf(S.year,S.month,d)!==0);
-    if(!wk.length)return;
-    const ranked=[...wk].sort((a,b)=>availOf(b).avail-availOf(a).avail||a-b);
-    addEvent(ranked[0],'bs');
-    const pr=ranked.find(d=>d!==ranked[0]);if(pr)addEvent(pr,'pr');
-  });
-  renderAll();
-}
-
 // ---------- イベント操作 ----------
 function addEvent(day,type,label,time){
   S.events[day]=S.events[day]||[];
@@ -395,7 +399,6 @@ function removeEvent(day,idx){S.events[day].splice(idx,1);if(!S.events[day].leng
 
 // ---------- 管理者カレンダー ----------
 function renderAdmin(){
-  // 日曜礼拝 自動反映(表示用)
   const cal=document.getElementById('adminCal');cal.innerHTML='';
   WD.forEach((w,i)=>{const h=document.createElement('div');h.className='h'+(i===0?' s0':i===6?' s6':'');h.textContent=w;cal.appendChild(h);});
   weeksOf(S.year,S.month).flat().forEach(d=>{
@@ -485,7 +488,7 @@ function renderAll(){
   renderAdmin();renderSelBar();renderPreview();renderShare();
   localStorage.setItem('elihu',JSON.stringify(S));
 }
-initSelectors();renderAll();
+initSelectors();renderAll();initAdminGate();
 </script>
 </body>
 </html>
