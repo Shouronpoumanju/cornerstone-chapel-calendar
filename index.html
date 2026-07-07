@@ -6,77 +6,97 @@
 <title>ELIHU 出欠・カレンダー</title>
 <style>
 :root{
-  --sun:#C0392B; --sat:#2E5A9E; --ink:#222; --line:#B9C2CF; --bg:#f4f6f9;
-  --worship:#B7791F; --bs:#2C7A7B; --pr:#C05621; --special:#6B46C1;
+  --sun:#e5484d; --sat:#3a6ff2; --ink:#1b2330; --muted:#6b7688;
+  --line:rgba(24,39,70,.10);
+  --accent:#4666f6; --accent2:#7a5cff;
+  --glass:rgba(255,255,255,.72); --glass-strong:rgba(255,255,255,.9);
+  --shadow:0 10px 34px rgba(30,50,100,.10);
 }
 *{box-sizing:border-box}
-body{font-family:"Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif;margin:0;background:var(--bg);color:var(--ink)}
-header{background:#111;color:#fff;padding:12px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:12px}
-header h1{font-size:18px;margin:0;font-weight:700}
-header .badge{background:#fff;color:#111;font-style:italic;font-weight:800;border-radius:8px;padding:2px 12px}
+body{font-family:-apple-system,"Hiragino Sans","Noto Sans JP","Yu Gothic",system-ui,sans-serif;margin:0;color:var(--ink);
+  -webkit-font-smoothing:antialiased;
+  background:radial-gradient(1100px 640px at 12% -12%,#e9f0ff 0%,transparent 55%),radial-gradient(1000px 600px at 112% -6%,#f4ecff 0%,transparent 52%),linear-gradient(180deg,#fbfdff,#f3f6fc);
+  background-attachment:fixed;min-height:100vh}
+header{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:12px 20px;
+  background:var(--glass);backdrop-filter:blur(20px) saturate(1.5);-webkit-backdrop-filter:blur(20px) saturate(1.5);
+  border-bottom:1px solid var(--line)}
+header h1{font-size:16px;margin:0;font-weight:600;letter-spacing:.01em;color:var(--ink)}
+header .badge{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:700;border-radius:999px;padding:6px 15px;font-size:14px;box-shadow:0 6px 18px rgba(70,102,246,.32)}
 .tabs{display:flex;gap:8px;margin-left:auto}
-.tab{background:#333;color:#fff;border:none;border-radius:20px;padding:8px 16px;font-size:15px;cursor:pointer}
-.tab.active{background:#fff;color:#111;font-weight:700}
-.wrap{max-width:1120px;margin:0 auto;padding:16px}
-.card{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);padding:16px;margin-bottom:16px}
+.tab{background:rgba(255,255,255,.55);color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:8px 18px;font-size:14px;font-weight:600;cursor:pointer;transition:.18s;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.tab:hover{color:var(--ink);background:#fff}
+.tab.active{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-color:transparent;box-shadow:0 8px 20px rgba(70,102,246,.30)}
+.wrap{max-width:1120px;margin:0 auto;padding:22px 20px 40px}
+.card{background:var(--glass);backdrop-filter:blur(18px) saturate(1.35);-webkit-backdrop-filter:blur(18px) saturate(1.35);
+  border:1px solid var(--glass-strong);border-radius:20px;box-shadow:var(--shadow);padding:18px 20px;margin-bottom:18px}
 .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-label{font-size:14px;color:#555}
-select,input[type=text],textarea{font:inherit;padding:7px 9px;border:1px solid #ccc;border-radius:8px}
+label{font-size:13px;color:var(--muted)}
+select,input[type=text],textarea{font:inherit;padding:9px 12px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.72);color:var(--ink);outline:none;transition:.15s}
+select:focus,input[type=text]:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(70,102,246,.16);background:#fff}
 textarea{width:100%;min-height:120px}
 button{font:inherit;cursor:pointer}
-.btn{background:#2E5A9E;color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:15px}
-.btn.gray{background:#666}.btn.green{background:#2f855a}.btn.ghost{background:#eee;color:#333}
-.hint{font-size:13px;color:#777;line-height:1.6}
-.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-top:10px}
-.cal .h{padding:6px 0;text-align:center;font-weight:700;color:#fff;background:#2d2d2d;border-radius:4px 4px 0 0;font-size:14px}
-.cal .h.s0{background:var(--sun)}.cal .h.s6{background:var(--sat)}
-.cell{background:#fff;border:1px solid var(--line);min-height:64px;padding:4px;font-size:13px;position:relative;cursor:pointer;border-radius:4px}
-.cell.empty{background:#f7f7f7;cursor:default}
-.cell .d{font-weight:700}
+.btn{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:12px;padding:10px 18px;font-size:14px;font-weight:600;box-shadow:0 8px 18px rgba(70,102,246,.24);transition:.16s}
+.btn:hover{transform:translateY(-1px);box-shadow:0 12px 24px rgba(70,102,246,.30)}
+.btn:active{transform:translateY(0)}
+.btn.green{background:linear-gradient(135deg,#16c088,#0ca678);box-shadow:0 8px 18px rgba(16,170,120,.26)}
+.btn.gray{background:rgba(255,255,255,.66);color:var(--muted);border:1px solid var(--line);box-shadow:none}
+.btn.gray:hover{color:var(--ink);background:#fff}
+.btn.ghost{background:rgba(255,255,255,.66);color:var(--ink);border:1px solid var(--line);box-shadow:none}
+.btn.ghost:hover{background:#fff}
+.hint{font-size:12.5px;color:var(--muted);line-height:1.65}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:12px}
+.cal .h{padding:8px 0;text-align:center;font-weight:600;color:var(--muted);background:transparent;font-size:13px;letter-spacing:.04em}
+.cal .h.s0{color:var(--sun)}.cal .h.s6{color:var(--sat)}
+.cell{background:rgba(255,255,255,.68);border:1px solid var(--line);min-height:66px;padding:6px 7px;font-size:13px;position:relative;cursor:pointer;border-radius:14px;transition:.14s}
+.cell:hover{background:#fff;box-shadow:0 8px 18px rgba(30,50,100,.09)}
+.cell.empty{background:transparent;border-color:transparent;cursor:default;box-shadow:none}
+.cell .d{font-weight:600;color:var(--ink)}
 .cell.s0 .d{color:var(--sun)}.cell.s6 .d{color:var(--sat)}
-.cell.pick{outline:3px solid #f6c343;outline-offset:-3px}
-.cell.ng{background:#ffe3e3}
-.abs{font-size:11px;color:#c0392b;line-height:1.3;margin-top:2px;word-break:break-all}
-.bigx{font-size:30px;line-height:1;color:#c0392b;font-weight:900;text-align:center;margin-top:4px}
-#memberCal .cell{min-height:74px}
-#memberCal .cell.ng{background:#ffd5d5;border-color:#e88}
-.avail{position:absolute;right:4px;bottom:3px;font-size:11px;color:#2f855a;font-weight:700}
-.ev{font-size:11px;border-radius:3px;padding:1px 3px;margin-top:2px;color:#fff;display:inline-block}
-.selbar{margin-top:12px;padding:12px;background:#f0f3f8;border-radius:10px}
-.chip{display:inline-block;background:#eef;border:1px solid #cdd;border-radius:16px;padding:3px 10px;margin:3px;font-size:13px}
+.cell.pick{border-color:var(--accent);box-shadow:0 0 0 3px rgba(70,102,246,.18)}
+.cell.ng{background:rgba(229,72,77,.10);border-color:rgba(229,72,77,.28)}
+.abs{font-size:11px;color:var(--sun);line-height:1.3;margin-top:2px;word-break:break-all}
+.bigx{font-size:30px;line-height:1;color:var(--sun);font-weight:800;text-align:center;margin-top:2px}
+#memberCal .cell{min-height:78px}
+#memberCal .cell.ng{background:rgba(229,72,77,.13);border-color:rgba(229,72,77,.38)}
+.avail{position:absolute;right:8px;bottom:6px;font-size:11px;color:#0ca678;font-weight:700}
+.ev{font-size:11px;border-radius:8px;padding:2px 8px;margin-top:3px;color:#fff;display:inline-block;font-weight:600}
+.selbar{margin-top:14px;padding:14px 16px;background:rgba(255,255,255,.82);border:1px solid var(--glass-strong);border-radius:16px;box-shadow:var(--shadow)}
+.chip{display:inline-block;background:rgba(70,102,246,.08);border:1px solid rgba(70,102,246,.18);border-radius:999px;padding:5px 13px;margin:3px;font-size:12.5px;color:var(--ink)}
 .chip b{margin-right:4px}
-.chip .x{color:#c00;cursor:pointer;margin-left:6px;font-weight:700}
-.out{width:100%;min-height:70px;font-size:15px;background:#fffdf2;border:1px solid #e6d9a8}
+.chip .x{color:var(--sun);cursor:pointer;margin-left:6px;font-weight:700}
+.out{width:100%;min-height:70px;font-size:14px;background:rgba(255,255,255,.72);border:1px solid var(--line);border-radius:12px}
 .eventbtns button{margin:3px 4px 3px 0}
 .mini{font-size:11px}
-/* ===== ELIHU プレビュー ===== */
-#print-area{background:#fff;padding:6px}
-.pv-top{display:grid;grid-template-columns:1fr 2fr 1fr;align-items:center;margin-bottom:6px}
+details summary{outline:none}
+/* ===== 配布用カレンダー(プレビュー) ===== */
+#print-area{background:#fff;padding:12px 10px;border-radius:14px}
+.pv-top{display:grid;grid-template-columns:1fr 2fr 1fr;align-items:center;margin-bottom:10px}
 .pv-title{text-align:center}
-.pv-title .yr{font-size:15px;color:#555;font-weight:700}
-.pv-title .mo{font-size:40px;font-weight:800;line-height:1.05}
-.pv-badge{display:inline-block;background:#111;color:#fff;font-weight:800;font-size:17px;border-radius:9px;padding:4px 18px;margin-top:5px}
-.pv-credit{text-align:right;font-size:10px;color:#aaa;margin-top:4px}
-.pv-mini{font-size:9px;color:#555}
+.pv-title .yr{font-size:14px;color:var(--muted);font-weight:600;letter-spacing:.18em}
+.pv-title .mo{font-size:42px;font-weight:800;line-height:1.02;letter-spacing:-.01em;color:var(--ink)}
+.pv-badge{display:inline-block;background:transparent;color:var(--accent);font-weight:700;font-size:16px;letter-spacing:.01em;border:1.5px solid rgba(70,102,246,.35);border-radius:999px;padding:4px 16px;margin-top:7px}
+.pv-credit{text-align:right;font-size:10px;color:#b8c0cc;margin-top:6px;letter-spacing:.1em}
+.pv-mini{font-size:9px;color:var(--muted)}
 .pv-mini table{border-collapse:collapse;margin:0 auto}
 .pv-mini td,.pv-mini th{width:15px;text-align:center;padding:0;font-weight:400}
 .pv-mini .s0{color:var(--sun)}.pv-mini .s6{color:var(--sat)}
-.pv-cal{display:grid;grid-template-columns:repeat(7,1fr);border-left:1px solid #cbd3de;border-top:1px solid #cbd3de}
-.pv-h{text-align:center;color:#fff;font-weight:800;padding:7px 0;border-right:1px solid #fff;font-size:19px;background:#2d2d2d}
-.pv-h.s0{background:var(--sun)}.pv-h.s6{background:var(--sat)}
-.pv-c{min-height:104px;border-right:1px solid #cbd3de;border-bottom:1px solid #cbd3de;padding:4px 5px;position:relative}
-.pv-c .n{font-weight:800;font-size:22px}
+.pv-cal{display:grid;grid-template-columns:repeat(7,1fr);border-top:2px solid var(--ink);border-left:1px solid var(--line)}
+.pv-h{text-align:center;color:var(--muted);font-weight:700;padding:8px 0;border-right:1px solid var(--line);border-bottom:1px solid var(--line);font-size:16px;background:#fbfcff;letter-spacing:.05em}
+.pv-h.s0{color:var(--sun)}.pv-h.s6{color:var(--sat)}
+.pv-c{min-height:104px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:6px 7px;position:relative;background:#fff}
+.pv-c .n{font-weight:700;font-size:20px;color:var(--ink)}
 .pv-c.s0 .n{color:var(--sun)}.pv-c.s6 .n{color:var(--sat)}
-.pv-c.off .n{color:#bbb;font-weight:600}
-.pv-ev{text-align:center;font-size:19px;font-weight:800;margin-top:5px;line-height:1.2}
-.ok{color:#2f855a;font-weight:700;font-size:11px;margin-top:2px}
-.logrow{font-size:13px;padding:5px 0;border-bottom:1px solid #eee;line-height:1.4}
+.pv-c.off{background:#fafbfe}
+.pv-c.off .n{color:#c7cedb;font-weight:500}
+.pv-ev{text-align:center;font-size:17px;font-weight:700;margin-top:6px;line-height:1.2}
+.ok{color:#0ca678;font-weight:700;font-size:11px;margin-top:2px}
+.logrow{font-size:13px;padding:6px 0;border-bottom:1px solid var(--line);line-height:1.4}
 @media print{
   header,.tabs,.no-print{display:none !important}
   body{background:#fff}
   .wrap{max-width:none;padding:0}
-  .card{box-shadow:none;padding:0;margin:0}
-  #print-area{padding:0}
+  .card{box-shadow:none;padding:0;margin:0;background:#fff;border:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+  #print-area{padding:0;border-radius:0}
   @page{size:A4 landscape;margin:8mm}
 }
 </style>
@@ -190,7 +210,7 @@ button{font:inherit;cursor:pointer}
 </div>
 
 <script>
-const COL={worship:'#B7791F',bs:'#2C7A7B',pr:'#C05621',special:'#6B46C1'};
+const COL={worship:'#b07d1e',bs:'#0ea5a0',pr:'#e0663a',special:'#7a5cff'};
 const DEF={worship:{label:'主日礼拝',time:'10:30'},bs:{label:'バイブルスタディー',time:'19:30'},pr:{label:'祈祷会',time:'19:30'}};
 const WD=['日','月','火','水','木','金','土'];
 // 共有オンライン保存(kvdb.io) — この教会専用バケット。全員が自動接続。
