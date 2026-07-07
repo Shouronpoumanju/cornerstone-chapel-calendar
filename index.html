@@ -200,71 +200,46 @@ details summary{outline:none}
 const COL={worship:'#b07d1e',bs:'#0ea5a0',pr:'#e0663a',special:'#7a5cff'};
 const DEF={worship:{label:'主日礼拝',time:'10:30'},bs:{label:'バイブルスタディー',time:'19:30'},pr:{label:'祈祷会',time:'19:30'}};
 const WD=['日','月','火','水','木','金','土'];
-// 共有オンライン保存(kvdb.io) — この教会専用バケット。全員が自動接続。
-const ROOM='XqLAiB9aYNRVeVUzatVgmp';
-const TOKEN='elihuWriteKx9Qm2';
-const AUTH={'Authorization':'Bearer '+TOKEN};
-let S=load()||{year:2026,month:7,church:'コーナーストーンチャペル',team:'ELIHU',room:'',members:['れいあ','たかし','ちかこ'],absent:{},events:{},selfAvail:{},selfName:'のあ'};
-if(!S.team)S.team='ELIHU'; S.room=ROOM; if(!S.selfAvail)S.selfAvail={}; if(!S.selfName)S.selfName='のあ';
+// 共有オンライン保存 — この教会専用 Firebase Realtime Database（のあのGoogle・無料・カード不要）
+const DB='https://cornerstone-chapel-calendar-default-rtdb.firebaseio.com';
+let S=load()||{year:2026,month:7,church:'コーナーストーンチャペル',team:'ELIHU',members:['れいあ','たかし','ちかこ'],absent:{},events:{},selfAvail:{},selfName:'のあ'};
+if(!S.team)S.team='ELIHU'; if(!S.selfAvail)S.selfAvail={}; if(!S.selfName)S.selfName='のあ';
 let mode='member', memberNG=new Set(), pickDay=null, pollTimer=null;
 
-/* ===== 共有オンライン保存(アカウント不要) =====
-   既定は kvdb.io。別サービスに変える場合はここだけ差し替え。 */
-const STORE='https://kvdb.io';
 function ymStr(){return S.year+'-'+String(S.month).padStart(2,'0');}
 function b64url(s){return btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
-function keyFor(ym,name){return ym+'__'+b64url(name);}
-async function roomCreate(){
-  try{const r=await fetch(STORE,{method:'POST'});if(!r.ok)throw 0;const id=(await r.text()).trim();
-    if(!id)throw 0;S.room=id;saveAll();renderShare();
-    alert('共有コードを作成しました:\n\n'+id+'\n\nこのコードと、このアプリのファイル(またはURL)をメンバーに配ってください。');}
-  catch(e){alert('作成に失敗しました。ネット接続を確認してください。');}
-}
-function roomJoin(){const v=(document.getElementById('joinCode')?.value||'').trim();
-  if(!v)return alert('共有コードを入力してください');S.room=v;saveAll();renderShare();flash('shareStatus','参加しました');}
-function roomLeave(){if(confirm('共有コードを解除しますか？'))
-{S.room='';saveAll();renderShare();}}
-function normalizeList(d){
-  if(Array.isArray(d))return d.map(x=>Array.isArray(x)?{key:x[0],value:x[1]}:{key:x.key||'',value:x.value!==undefined?x.value:x});
-  if(d&&typeof d==='object')return Object.entries(d).map(([k,v])=>({key:k,value:v}));
-  return [];}
+function keyFor(name){return b64url(name);}
 async function submitMember(){
   const name=(document.getElementById('memName').value||'').trim();
   if(!name)return alert('お名前を入れてください');
-  if(!S.room)return alert('共有コードが未設定です。上の「共有設定」でコードを入力してください。');
   const days=[...memberNG].sort((a,b)=>a-b);const ym=ymStr();
   const ts=Date.now();const payload=JSON.stringify({name,days,ts});
   flash('memStatus','送信中…');
-  try{const r=await fetch(`${STORE}/${S.room}/${keyFor(ym,name)}`,{method:'POST',headers:AUTH,body:payload});
+  try{const r=await fetch(`${DB}/cur/${ym}/${keyFor(name)}.json`,{method:'PUT',body:payload});
     if(!r.ok)throw 0;
     // 履歴(誰が・いつ・何を)を追記記録。上書きされず残る
-    try{await fetch(`${STORE}/${S.room}/log-${ym}-${ts}-${Math.random().toString(36).slice(2,7)}`,{method:'POST',headers:AUTH,body:payload});}catch(_){}
+    try{await fetch(`${DB}/log/${ym}.json`,{method:'POST',body:payload});}catch(_){}
     flash('memStatus','✅ 送信・記録しました（'+ym+' / '+new Date(ts).toLocaleString('ja-JP')+'）');}
-  catch(e){flash('memStatus','⚠ 送信できませんでした。下の「コピーして手動で送る」をご利用ください');}
+  catch(e){flash('memStatus','⚠ 送信できませんでした。ネット接続をご確認ください（または下のコピーで手動送信）');}
 }
 async function loadLog(){
-  if(!S.room){flash('logStatus','共有コード未設定');return;}
-  const ym=ymStr();flash('logStatus','取得中…');
-  try{const r=await fetch(`${STORE}/${S.room}/?format=json&values=true&prefix=log-${ym}-`,{headers:AUTH});
-    if(!r.ok)throw 0;const list=normalizeList(await r.json());
-    const rows=list.map(({value})=>{let o=value;if(typeof value==='string'){try{o=JSON.parse(value)}catch(_){o=null}}return o;})
-      .filter(o=>o&&o.name).sort((a,b)=>(b.ts||0)-(a.ts||0));
+  const ym=ymStr();
+  try{const r=await fetch(`${DB}/log/${ym}.json`);
+    if(!r.ok)throw 0;const obj=await r.json();
+    const rows=obj?Object.values(obj).filter(o=>o&&o.name).sort((a,b)=>(b.ts||0)-(a.ts||0)):[];
     document.getElementById('logBox').innerHTML = rows.length
       ? rows.map(o=>`<div class="logrow"><b>${o.name}</b> <span style="color:#888">${o.ts?new Date(o.ts).toLocaleString('ja-JP'):''}</span><br>来られない日: ${(o.days||[]).join(', ')||'なし'}</div>`).join('')
-      : '<span class="hint">履歴はまだありません</span>';
-    flash('logStatus','✅ '+rows.length+'件');}
-  catch(e){flash('logStatus','⚠ 取得できませんでした');}
+      : '<span class="hint">履歴はまだありません</span>';}
+  catch(e){}
 }
 async function pullResponses(){
-  if(!S.room){flash('pullStatus','共有コード未設定（サンプルか手動貼付をご利用ください）');return;}
-  const ym=ymStr();flash('pullStatus','取得中…');
-  try{const r=await fetch(`${STORE}/${S.room}/?format=json&values=true&prefix=${ym}__`,{headers:AUTH});
-    if(!r.ok)throw 0;const data=await r.json();const list=normalizeList(data);
+  const ym=ymStr();
+  try{const r=await fetch(`${DB}/cur/${ym}.json`);
+    if(!r.ok)throw 0;const obj=await r.json();
     S.absent={};
-    list.forEach(({value})=>{let o=value;if(typeof value==='string'){try{o=JSON.parse(value)}catch(_){o=null}}
-      if(o&&o.name){S.absent[o.name]=(o.days||[]).map(Number);if(!S.members.includes(o.name))S.members.push(o.name);}});
-    saveAll();renderAll();flash('pullStatus','✅ '+list.length+'人 取得（'+new Date().toLocaleTimeString('ja-JP')+'）');}
-  catch(e){flash('pullStatus','⚠ 取得できませんでした。コード/ネットを確認、または手動貼付をご利用ください');}
+    if(obj){Object.values(obj).forEach(o=>{if(o&&o.name){S.absent[o.name]=(o.days||[]).map(Number);if(!S.members.includes(o.name))S.members.push(o.name);}});}
+    saveAll();renderAll();flash('pullStatus','✅ '+Object.keys(S.absent).length+'人（'+new Date().toLocaleTimeString('ja-JP')+' 更新）');}
+  catch(e){flash('pullStatus','⚠ 取得できませんでした（ネット確認）');}
 }
 function renderShare(){
   const row=document.getElementById('shareRow');if(!row)return;
@@ -302,7 +277,7 @@ function setMode(m){if(m==='admin'&&!window.__adminOK)m='member';mode=m;
   document.getElementById('viewAdmin').style.display=m==='admin'?'':'none';
   renderAll();
   if(m==='admin')startPoll();else stopPoll();}
-function startPoll(){stopPoll();if(!S.room)return;pullResponses();loadLog();
+function startPoll(){stopPoll();pullResponses();loadLog();
   pollTimer=setInterval(()=>{if(mode==='admin'){pullResponses();loadLog();}},15000);}
 function stopPoll(){if(pollTimer){clearInterval(pollTimer);pollTimer=null;}}
 
