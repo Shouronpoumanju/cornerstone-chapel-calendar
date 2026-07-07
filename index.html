@@ -112,35 +112,23 @@ details summary{outline:none}
 </header>
 
 <div class="wrap">
-  <!-- 共通設定 -->
+  <!-- 対象月 -->
   <div class="card no-print">
     <div class="row">
       <label>対象月</label>
       <select id="selYear"></select>
       <select id="selMonth"></select>
-      <label style="margin-left:12px">教会名</label>
-      <input type="text" id="inpChurch" value="コーナーストーンチャペル" style="width:180px">
-      <label>奉仕チーム</label>
-      <input type="text" id="inpTeam" value="ELIHU" style="width:90px">
-      <button class="btn ghost" onclick="saveAll()">この端末に保存</button>
     </div>
   </div>
-
-  <!-- 共有設定 -->
-  <div class="card no-print">
-    <b>共有設定</b>
-    <span class="hint">この教会専用の保存先に自動接続。メンバーの入力は自動で のあ に届きます。</span>
-    <div class="row" id="shareRow" style="margin-top:8px"></div>
-    <div class="hint" id="shareStatus" style="margin-top:6px"></div>
-  </div>
+  <div id="shareRow" style="display:none"></div>
+  <div id="shareStatus" style="display:none"></div>
 
   <!-- ===================== メンバー用 ===================== -->
   <section id="viewMember">
     <div class="card no-print">
       <div class="row">
         <label>お名前</label>
-        <input type="text" id="memName" list="memList" placeholder="例:れいあ" style="width:160px">
-        <datalist id="memList"></datalist>
+        <input type="text" id="memName" placeholder="例:教会太郎" style="width:200px">
         <span class="hint">来られない日をタップ →「送信」を押してください（自動で のあ に届きます）。</span>
       </div>
       <div id="memberCal" class="cal"></div>
@@ -165,26 +153,25 @@ details summary{outline:none}
       <button class="btn gray" onclick="lockAdmin()">🔒 管理者ページをロック（この端末で隠す）</button>
     </div>
     <div class="card no-print">
-      <b>① メンバーの回答を集める</b>
-      <div class="row" style="margin-top:6px">
-        <button class="btn green" onclick="pullResponses()">共有から取得（自動）</button>
-        <label><input type="checkbox" id="autoPull" checked> 自動更新</label>
-        <button class="btn ghost" onclick="loadDemo()">サンプル(7月)を読み込む</button>
-        <button class="btn gray" onclick="clearAll()">全消去</button>
-        <span id="pullStatus" class="hint"></span>
+      <div class="row">
+        <label>教会名</label><input type="text" id="inpChurch" value="コーナーストーンチャペル" style="width:210px">
+        <label>奉仕チーム</label><input type="text" id="inpTeam" value="ELIHU" style="width:110px">
       </div>
+    </div>
+    <div class="card no-print">
+      <b>① メンバーの回答</b><span id="pullStatus" class="hint" style="margin-left:10px"></span>
       <div id="memberChips" style="margin-top:8px"></div>
       <details style="margin-top:10px" open>
         <summary class="hint" style="cursor:pointer"><b>入力履歴（誰が・いつ・何を入力したか）</b></summary>
-        <div class="row" style="margin-top:6px">
-          <button class="btn ghost" onclick="loadLog()">履歴を更新</button>
-          <span id="logStatus" class="hint"></span>
-        </div>
-        <div id="logBox" style="margin-top:6px;max-height:200px;overflow:auto"></div>
+        <div id="logBox" style="margin-top:8px;max-height:220px;overflow:auto"></div>
       </details>
       <details style="margin-top:10px">
-        <summary class="hint" style="cursor:pointer">手動で貼り付ける（予備）</summary>
-        <textarea id="pasteArea" placeholder="#ELIHU|れいあ|2026-07|3,9,10" style="margin-top:6px"></textarea>
+        <summary class="hint" style="cursor:pointer">その他（手動入力・サンプル・リセット）</summary>
+        <div class="row" style="margin-top:8px">
+          <button class="btn ghost" onclick="loadDemo()">サンプルで試す</button>
+          <button class="btn gray" onclick="clearAll()">全消去</button>
+        </div>
+        <textarea id="pasteArea" placeholder="#ELIHU|教会太郎|2026-07|3,9,10" style="margin-top:8px"></textarea>
         <button class="btn ghost" style="margin-top:6px" onclick="parseResponses()">貼り付けを読み込む</button>
       </details>
     </div>
@@ -315,8 +302,8 @@ function setMode(m){if(m==='admin'&&!window.__adminOK)m='member';mode=m;
   document.getElementById('viewAdmin').style.display=m==='admin'?'':'none';
   renderAll();
   if(m==='admin')startPoll();else stopPoll();}
-function startPoll(){stopPoll();if(S.room&&document.getElementById('autoPull')?.checked){pullResponses();
-  pollTimer=setInterval(()=>{if(mode==='admin'&&document.getElementById('autoPull')?.checked)pullResponses();},20000);}}
+function startPoll(){stopPoll();if(!S.room)return;pullResponses();loadLog();
+  pollTimer=setInterval(()=>{if(mode==='admin'){pullResponses();loadLog();}},15000);}
 function stopPoll(){if(pollTimer){clearInterval(pollTimer);pollTimer=null;}}
 
 // ---------- 初期化 ----------
@@ -347,9 +334,6 @@ function renderMember(){
     c.onclick=()=>{memberNG.has(d)?memberNG.delete(d):memberNG.add(d);renderMember();renderMemberOut();};
     cal.appendChild(c);
   });
-  // datalist
-  const dl=document.getElementById('memList');dl.innerHTML='';
-  S.members.forEach(n=>dl.appendChild(new Option(n)));
   renderMemberOut();
 }
 function renderMemberOut(){
