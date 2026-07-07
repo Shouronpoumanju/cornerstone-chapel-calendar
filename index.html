@@ -109,7 +109,7 @@ button{font:inherit;cursor:pointer}
   <!-- 共有設定 -->
   <div class="card no-print">
     <b>共有設定</b>
-    <span class="hint">この教会グループの「共有コード」で、入力が自動で のあ に届きます。</span>
+    <span class="hint">この教会専用の保存先に自動接続。メンバーの入力は自動で のあ に届きます。</span>
     <div class="row" id="shareRow" style="margin-top:8px"></div>
     <div class="hint" id="shareStatus" style="margin-top:6px"></div>
   </div>
@@ -193,8 +193,12 @@ button{font:inherit;cursor:pointer}
 const COL={worship:'#B7791F',bs:'#2C7A7B',pr:'#C05621',special:'#6B46C1'};
 const DEF={worship:{label:'主日礼拝',time:'10:30'},bs:{label:'バイブルスタディー',time:'19:30'},pr:{label:'祈祷会',time:'19:30'}};
 const WD=['日','月','火','水','木','金','土'];
+// 共有オンライン保存(kvdb.io) — この教会専用バケット。全員が自動接続。
+const ROOM='XqLAiB9aYNRVeVUzatVgmp';
+const TOKEN='elihuWriteKx9Qm2';
+const AUTH={'Authorization':'Bearer '+TOKEN};
 let S=load()||{year:2026,month:7,church:'コーナーストーンチャペル',team:'ELIHU',room:'',members:['れいあ','たかし','ちかこ'],absent:{},events:{},selfAvail:{},selfName:'のあ'};
-if(!S.team)S.team='ELIHU'; if(S.room===undefined)S.room=''; if(!S.selfAvail)S.selfAvail={}; if(!S.selfName)S.selfName='のあ';
+if(!S.team)S.team='ELIHU'; S.room=ROOM; if(!S.selfAvail)S.selfAvail={}; if(!S.selfName)S.selfName='のあ';
 let mode='member', memberNG=new Set(), pickDay=null, pollTimer=null;
 
 /* ===== 共有オンライン保存(アカウント不要) =====
@@ -224,17 +228,17 @@ async function submitMember(){
   const days=[...memberNG].sort((a,b)=>a-b);const ym=ymStr();
   const ts=Date.now();const payload=JSON.stringify({name,days,ts});
   flash('memStatus','送信中…');
-  try{const r=await fetch(`${STORE}/${S.room}/${keyFor(ym,name)}`,{method:'POST',body:payload});
+  try{const r=await fetch(`${STORE}/${S.room}/${keyFor(ym,name)}`,{method:'POST',headers:AUTH,body:payload});
     if(!r.ok)throw 0;
     // 履歴(誰が・いつ・何を)を追記記録。上書きされず残る
-    try{await fetch(`${STORE}/${S.room}/log-${ym}-${ts}-${Math.random().toString(36).slice(2,7)}`,{method:'POST',body:payload});}catch(_){}
+    try{await fetch(`${STORE}/${S.room}/log-${ym}-${ts}-${Math.random().toString(36).slice(2,7)}`,{method:'POST',headers:AUTH,body:payload});}catch(_){}
     flash('memStatus','✅ 送信・記録しました（'+ym+' / '+new Date(ts).toLocaleString('ja-JP')+'）');}
   catch(e){flash('memStatus','⚠ 送信できませんでした。下の「コピーして手動で送る」をご利用ください');}
 }
 async function loadLog(){
   if(!S.room){flash('logStatus','共有コード未設定');return;}
   const ym=ymStr();flash('logStatus','取得中…');
-  try{const r=await fetch(`${STORE}/${S.room}/?format=json&values=true&prefix=log-${ym}-`);
+  try{const r=await fetch(`${STORE}/${S.room}/?format=json&values=true&prefix=log-${ym}-`,{headers:AUTH});
     if(!r.ok)throw 0;const list=normalizeList(await r.json());
     const rows=list.map(({value})=>{let o=value;if(typeof value==='string'){try{o=JSON.parse(value)}catch(_){o=null}}return o;})
       .filter(o=>o&&o.name).sort((a,b)=>(b.ts||0)-(a.ts||0));
@@ -247,7 +251,7 @@ async function loadLog(){
 async function pullResponses(){
   if(!S.room){flash('pullStatus','共有コード未設定（サンプルか手動貼付をご利用ください）');return;}
   const ym=ymStr();flash('pullStatus','取得中…');
-  try{const r=await fetch(`${STORE}/${S.room}/?format=json&values=true&prefix=${ym}__`);
+  try{const r=await fetch(`${STORE}/${S.room}/?format=json&values=true&prefix=${ym}__`,{headers:AUTH});
     if(!r.ok)throw 0;const data=await r.json();const list=normalizeList(data);
     S.absent={};
     list.forEach(({value})=>{let o=value;if(typeof value==='string'){try{o=JSON.parse(value)}catch(_){o=null}}
@@ -257,13 +261,8 @@ async function pullResponses(){
 }
 function renderShare(){
   const row=document.getElementById('shareRow');if(!row)return;
-  if(S.room){row.innerHTML=`共有コード: <b style="font-size:16px">${S.room}</b>
-    <button class="btn ghost" onclick="navigator.clipboard&&navigator.clipboard.writeText('${S.room}');flash('shareStatus','コピーしました')">コピー</button>
-    <button class="btn gray" onclick="roomLeave()">解除</button>`;}
-  else{row.innerHTML=`<input type="text" id="joinCode" placeholder="共有コードを入力" style="width:220px">
-    <button class="btn" onclick="roomJoin()">参加</button>`+
-    (window.__adminOK?`<span style="color:#999">｜のあさんは→</span>
-    <button class="btn green" onclick="roomCreate()">新しく共有をオンにする</button>`:'');}
+  row.innerHTML='<span style="color:#2f855a;font-weight:700">✔ 共有オンライン保存に接続済み（自動）</span>'+
+    ' <span class="hint">メンバーは名前を入れて「送信」するだけ。コード入力は不要です。</span>';
 }
 
 function load(){try{return JSON.parse(localStorage.getItem('elihu'))}catch(e){return null}}
