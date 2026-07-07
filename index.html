@@ -177,11 +177,12 @@ details summary{outline:none}
     </div>
 
     <div class="card no-print">
-      <b>② 日を選んで予定を配置</b>
+      <b>② 予定を配置 / 自分の都合</b>
       <div class="row" style="margin-top:6px">
+        <button id="selfBtn" class="btn ghost" onclick="toggleSelfMode()">○ 自分が行ける日を選ぶ</button>
         <label><input type="checkbox" id="autoWorship" checked onchange="renderAll()"> 毎週日曜に「主日礼拝」</label>
-        <span class="hint">日をタップ→送られてきた都合を見ながら、バイブルスタディー/祈祷会/特別行事を配置。自分が行ける日は「○」で追加。緑=参加可能、赤=欠席。</span>
       </div>
+      <div id="modeHint" class="hint" style="margin-top:6px"></div>
       <div id="adminCal" class="cal"></div>
       <div id="selBar" class="selbar" style="display:none"></div>
     </div>
@@ -204,7 +205,7 @@ const WD=['日','月','火','水','木','金','土'];
 const DB='https://cornerstone-chapel-calendar-default-rtdb.firebaseio.com';
 let S=load()||{year:2026,month:7,church:'コーナーストーンチャペル',team:'ELIHU',members:['れいあ','たかし','ちかこ'],absent:{},events:{},selfAvail:{},selfName:'のあ'};
 if(!S.team)S.team='ELIHU'; if(!S.selfAvail)S.selfAvail={}; if(!S.selfName)S.selfName='のあ';
-let mode='member', memberNG=new Set(), pickDay=null, pollTimer=null;
+let mode='member', memberNG=new Set(), pickDay=null, pollTimer=null, selfMode=false;
 
 function ymStr(){return S.year+'-'+String(S.month).padStart(2,'0');}
 function b64url(s){return btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
@@ -389,10 +390,17 @@ function renderAdmin(){
     let ev='';(evList(d)).forEach(e=>{ev+=`<span class="ev" style="background:${e.color}">${e.label}</span>`;});
     const self=selfHere(d)?`<div class="ok">○${S.selfName}</div>`:'';
     c.innerHTML=`<div class="d">${d}</div>${abs.length?`<div class="abs">✕ ${abs.join(' ')}</div>`:''}${self}${ev}${a.tot?`<div class="avail">可${a.avail}</div>`:''}`;
-    c.onclick=()=>{pickDay=d;renderAdmin();renderSelBar();};
+    c.onclick=()=>{ if(selfMode){toggleSelf(d);} else {pickDay=d;renderAdmin();renderSelBar();} };
     cal.appendChild(c);
   });
-  renderChips();
+  renderChips();syncSelfBtn();
+}
+function toggleSelfMode(){selfMode=!selfMode;pickDay=null;renderAdmin();renderSelBar();}
+function syncSelfBtn(){
+  const b=document.getElementById('selfBtn');if(b)b.className='btn'+(selfMode?' green':' ghost');
+  const h=document.getElementById('modeHint');if(h)h.innerHTML=selfMode
+    ?'<b style="color:#0ca678">○モード中:</b> カレンダーをタップして「自分が行ける日」をポチポチ選択（もう一度タップで解除）。終わったらボタンをもう一度押してオフに。'
+    :'日をタップ→バイブルスタディー/祈祷会/特別行事を配置。緑=参加可能、赤=欠席。';
 }
 function evList(d){ // 自動主日礼拝を含めた表示用リスト
   let list=(S.events[d]||[]).slice();
@@ -409,18 +417,16 @@ function renderChips(){
 }
 function renderSelBar(){
   const bar=document.getElementById('selBar');
-  if(!pickDay){bar.style.display='none';return;}
+  if(selfMode||!pickDay){bar.style.display='none';return;}
   bar.style.display='';
   const d=pickDay,a=availOf(d),abs=absentNames(d);
   let cur='';(S.events[d]||[]).forEach((e,i)=>{cur+=`<span class="ev" style="background:${e.color}">${e.label} <span style="cursor:pointer" onclick="removeEvent(${d},${i});renderAll()">✕</span></span> `;});
-  const on=selfHere(d);
   bar.innerHTML=`<b>${S.month}月${d}日(${WD[wdOf(S.year,S.month,d)]})</b> 　参加可 <b style="color:#2f855a">${a.avail}人</b> ${abs.length?`／欠席: <span style="color:#c00">${abs.join('、')}</span>`:'／全員可'}
     <div class="eventbtns" style="margin-top:8px">
       <button class="btn ghost" onclick="addEvent(${d},'worship');renderAll()">主日礼拝</button>
       <button class="btn ghost" onclick="addEvent(${d},'bs');renderAll()">バイブルスタディー</button>
       <button class="btn ghost" onclick="addEvent(${d},'pr');renderAll()">祈祷会</button>
       <button class="btn ghost" onclick="addSpecial(${d})">特別行事…</button>
-      <button class="${on?'btn green':'btn ghost'}" onclick="toggleSelf(${d})">${on?'○ 自分は参加できる(解除)':'○ 自分は参加できる'}</button>
       <button class="btn gray" onclick="delete S.events[${d}];renderAll()">行事を空に</button>
     </div>
     <div style="margin-top:6px">現在: ${cur||'（なし）'}</div>`;
