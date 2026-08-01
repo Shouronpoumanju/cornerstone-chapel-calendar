@@ -204,7 +204,8 @@ details summary{outline:none}
     <div class="card">
       <div class="row no-print" style="margin-bottom:10px">
         <b>③ 配布用カレンダー(プレビュー)</b>
-        <button class="btn green" style="margin-left:auto" onclick="window.print()">印刷 / PDF保存</button>
+        <button class="btn" style="margin-left:auto" onclick="savePng(this)">画像で保存(PNG)</button>
+        <button class="btn green" onclick="window.print()">印刷 / PDF保存</button>
       </div>
       <div id="print-area"></div>
     </div>
@@ -480,6 +481,33 @@ function renderPreview(){
   pa.innerHTML=html+'</div><div class="pv-credit">'+S.team+' 奉仕チーム</div>';
 }
 
+// ---------- 画像(PNG)で保存 ----------
+async function savePng(btn){
+  const label=btn?btn.textContent:'';
+  try{
+    if(btn){btn.disabled=true;btn.textContent='画像を作成中…';}
+    if(typeof html2canvas==='undefined'){
+      await new Promise((res,rej)=>{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';sc.onload=res;sc.onerror=rej;document.head.appendChild(sc);});
+    }
+    const el=document.getElementById('print-area');
+    const canvas=await html2canvas(el,{scale:2,backgroundColor:'#ffffff',useCORS:true});
+    const url=canvas.toDataURL('image/png');
+    const fname=(S.church||'ELIHU')+'_'+ymStr()+'.png';
+    const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||(('ontouchstart'in window)&&innerWidth<900);
+    if(isMobile){
+      const ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:12px';
+      const hint=document.createElement('div');hint.textContent='画像を長押し →「写真に追加」で保存できます';hint.style.cssText='color:#fff;font-size:14px;text-align:center;line-height:1.5';
+      const img=new Image();img.src=url;img.style.cssText='max-width:100%;max-height:78%;box-shadow:0 0 20px #000;border-radius:6px';
+      const close=document.createElement('button');close.textContent='閉じる';close.className='btn gray';close.onclick=()=>ov.remove();
+      ov.appendChild(hint);ov.appendChild(img);ov.appendChild(close);
+      ov.addEventListener('click',e=>{if(e.target===ov)ov.remove();});
+      document.body.appendChild(ov);
+    }else{
+      const a=document.createElement('a');a.href=url;a.download=fname;document.body.appendChild(a);a.click();a.remove();
+    }
+  }catch(e){alert('画像の生成に失敗しました。ネット接続をご確認ください。');}
+  finally{if(btn){btn.disabled=false;btn.textContent=label||'画像で保存(PNG)';}}
+}
 function renderAll(){
   document.getElementById('selYear').value=S.year;document.getElementById('selMonth').value=S.month;
   if(mode==='member')renderMember();
