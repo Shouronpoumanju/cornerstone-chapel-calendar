@@ -107,7 +107,7 @@ details summary{outline:none}
   <h1>出欠 & カレンダー</h1>
   <div class="tabs no-print">
     <button class="tab active" data-m="member" onclick="setMode('member')">メンバー用</button>
-    <button class="tab" id="adminTab" data-m="admin" style="display:none" onclick="setMode('admin')">管理者(のあ)</button>
+    <button class="tab" id="adminTab" data-m="admin" onclick="setMode('admin')">管理者(のあ)</button>
   </div>
 </header>
 
@@ -258,21 +258,21 @@ function weeksOf(y,m){const n=daysIn(y,m),f=wdOf(y,m,1);let w=[],cur=new Array(f
   if(cur.length){while(cur.length<7)cur.push(0);w.push(cur);}return w;}
 
 /* ===== 管理者ページの秘密URLロック ===== */
-const ADMIN_HASH='c45e94c80d7d26502d85977834b96cab8355c084c6f10b64157943a6681f10d9';
+const ADMIN_HASH='c45e94c80d7d26502d85977834b96cab8355c084c6f10b64157943a6681f10d9';window.ADMIN_PW_HASH='505a475d3afb1016a664d49e436a5606bd65b262d52e48d888f2e961566561d8';
 async function sha256hex(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));
   return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');}
 async function initAdminGate(){
-  let ok=localStorage.getItem('adminOK')==='1', viaLink=false;
+  let ok=localStorage.getItem('adminOK')===window.ADMIN_PW_HASH, viaLink=false;
   const frag=(location.hash||'').replace(/^#/,'').trim();
-  if(frag){try{if(await sha256hex(frag)===ADMIN_HASH){ok=true;viaLink=true;localStorage.setItem('adminOK','1');
+  if(frag){try{if(await sha256hex(frag)===window.ADMIN_PW_HASH){ok=true;viaLink=true;localStorage.setItem('adminOK',window.ADMIN_PW_HASH);
     history.replaceState(null,'',location.pathname+location.search);}}catch(e){}}
   window.__adminOK=ok;
-  const at=document.getElementById('adminTab');if(at)at.style.display=ok?'':'none';
+  const at=document.getElementById('adminTab');if(at)at.style.display='';
   if(viaLink)setMode('admin');
 }
 function lockAdmin(){localStorage.removeItem('adminOK');window.__adminOK=false;location.href=location.pathname;}
 
-function setMode(m){if(m==='admin'&&!window.__adminOK)m='member';mode=m;
+function ccLogin(){if(document.getElementById('ccLoginOv'))return;var mk=function(t,css,txt){var e=document.createElement(t);if(css)e.style.cssText=css;if(txt!=null)e.textContent=txt;return e;};var ov=mk('div','position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(20,30,60,.45)');ov.id='ccLoginOv';var box=mk('div','background:#fff;padding:24px 22px;border-radius:18px;box-shadow:0 20px 60px rgba(30,50,100,.35);width:300px;max-width:90vw;font-family:inherit');box.appendChild(mk('div','font-weight:700;font-size:16px;margin-bottom:6px;color:#1b2330','管理者ログイン'));box.appendChild(mk('div','font-size:12.5px;color:#6b7688;margin-bottom:14px','パスワードを入力してください'));var pw=mk('input','width:100%;padding:10px 12px;border:1px solid rgba(24,39,70,.18);border-radius:12px;font:inherit;outline:none;margin-bottom:8px');pw.type='password';pw.id='ccPw';pw.autocomplete='off';box.appendChild(pw);var err=mk('div','color:#e5484d;font-size:12px;min-height:16px;margin-bottom:8px');box.appendChild(err);var bar=mk('div','display:flex;gap:8px;justify-content:flex-end');var cancel=mk('button','padding:9px 16px;border-radius:12px;border:1px solid rgba(24,39,70,.18);background:#fff;font:inherit;cursor:pointer','キャンセル');var okb=mk('button','padding:9px 16px;border-radius:12px;border:none;background:linear-gradient(135deg,#4666f6,#7a5cff);color:#fff;font:inherit;font-weight:600;cursor:pointer','ログイン');bar.appendChild(cancel);bar.appendChild(okb);box.appendChild(bar);ov.appendChild(box);document.body.appendChild(ov);pw.focus();var close=function(){ov.remove();};cancel.onclick=close;ov.addEventListener('click',function(e){if(e.target===ov)close();});var submit=async function(){var h=await sha256hex(pw.value.trim());if(h===window.ADMIN_PW_HASH){localStorage.setItem('adminOK',window.ADMIN_PW_HASH);window.__adminOK=true;var at=document.getElementById('adminTab');if(at)at.style.display='';close();setMode('admin');}else{err.textContent='パスワードが違います';pw.value='';pw.focus();}};okb.onclick=submit;pw.addEventListener('keydown',function(e){if(e.key==='Enter')submit();});}function setMode(m){if(m==='admin'&&!window.__adminOK){ccLogin();return;}mode=m;
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.m===m));
   document.getElementById('viewMember').style.display=m==='member'?'':'none';
   document.getElementById('viewAdmin').style.display=m==='admin'?'':'none';
