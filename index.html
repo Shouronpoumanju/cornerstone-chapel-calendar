@@ -93,11 +93,25 @@ details summary{outline:none}
 .logrow{font-size:13px;padding:6px 0;border-bottom:1px solid var(--line);line-height:1.4}
 @media print{
   header,.tabs,.no-print{display:none !important}
-  body{background:#fff}
-  .wrap{max-width:none;padding:0}
+  body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .wrap{max-width:none;padding:0;margin:0}
   .card{box-shadow:none;padding:0;margin:0;background:#fff;border:none;backdrop-filter:none;-webkit-backdrop-filter:none}
-  #print-area{padding:0;border-radius:0}
-  @page{size:A4 landscape;margin:8mm}
+  #print-area{padding:0;border-radius:0;width:100%}
+  @page{size:A4 landscape;margin:7mm}
+  /* ===== 必ず1ページに収める配布カレンダー ===== */
+  .pv-top{margin-bottom:3mm}
+  .pv-title .yr{font-size:11px;letter-spacing:.12em}
+  .pv-title .mo{font-size:26px;line-height:1}
+  .pv-badge{font-size:12px;padding:2px 12px;margin-top:2px}
+  .pv-mini{font-size:7.5px}
+  .pv-mini td,.pv-mini th{width:12px}
+  .pv-cal{break-inside:avoid;page-break-inside:avoid}
+  .pv-h{font-size:12px;padding:3px 0;color:#5a6472}
+  .pv-c{min-height:0;height:24mm;padding:3px 6px;break-inside:avoid;page-break-inside:avoid}
+  .pv-c .n{font-size:15px}
+  .pv-c.off .n{font-size:15px}
+  .pv-ev{font-size:12px;margin-top:2px;line-height:1.15}
+  .pv-credit{margin-top:3px;font-size:9px}
 }
 </style>
 </head>
