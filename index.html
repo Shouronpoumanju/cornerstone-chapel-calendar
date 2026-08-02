@@ -484,13 +484,18 @@ function renderPreview(){
 // ---------- 画像(PNG)で保存 ----------
 async function savePng(btn){
   const label=btn?btn.textContent:'';
+  const el=document.getElementById('print-area');
+  const prev=el.getAttribute('style')||'';
   try{
     if(btn){btn.disabled=true;btn.textContent='画像を作成中…';}
     if(typeof html2canvas==='undefined'){
       await new Promise((res,rej)=>{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';sc.onload=res;sc.onerror=rej;document.head.appendChild(sc);});
     }
-    const el=document.getElementById('print-area');
+    // 端末幅に依存せず、横型の見やすい画像に固定（スマホでも縦長にならない）
+    el.style.cssText='width:1080px;max-width:none;position:fixed;left:-20000px;top:0;background:#fff';
+    await new Promise(r=>setTimeout(r,180));
     const canvas=await html2canvas(el,{scale:2,backgroundColor:'#ffffff',useCORS:true});
+    el.setAttribute('style',prev);
     const url=canvas.toDataURL('image/png');
     const fname=(S.church||'ELIHU')+'_'+ymStr()+'.png';
     const isMobile=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||(('ontouchstart'in window)&&innerWidth<900);
@@ -505,7 +510,7 @@ async function savePng(btn){
     }else{
       const a=document.createElement('a');a.href=url;a.download=fname;document.body.appendChild(a);a.click();a.remove();
     }
-  }catch(e){alert('画像の生成に失敗しました。ネット接続をご確認ください。');}
+  }catch(e){el.setAttribute('style',prev);alert('画像の生成に失敗しました。ネット接続をご確認ください。');}
   finally{if(btn){btn.disabled=false;btn.textContent=label||'画像で保存(PNG)';}}
 }
 function renderAll(){
